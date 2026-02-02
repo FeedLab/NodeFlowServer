@@ -13,4 +13,8 @@ public sealed class User
     public DateTimeOffset CreatedAtUtc { get; set; }
 
     public DateTimeOffset? LastLoginUtc { get; set; }
+
+    public string? RefreshToken { get; set; }
+
+    public DateTimeOffset? RefreshTokenExpiresAtUtc { get; set; }
 }

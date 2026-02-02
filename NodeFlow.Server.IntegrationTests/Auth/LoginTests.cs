@@ -43,6 +43,34 @@ public sealed class LoginTests
         user.LastLoginUtc.Should().BeAfter(DateTimeOffset.UtcNow.AddMinutes(-1));
     }
 
+    [Fact]
+    public async Task Login_Returns_RefreshToken_And_Stores_In_Database()
+    {
+        await using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var createRequest = new CreateUserRequest("alice", "alice@example.com", "P@ssw0rd!");
+        var createResponse = await client.PostAsJsonAsync("/auth/users", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var loginRequest = new LoginRequest("alice@example.com", "P@ssw0rd!");
+        var loginResponse = await client.PostAsJsonAsync("/auth/login", loginRequest);
+
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var login = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+        login.Should().NotBeNull();
+        login!.RefreshToken.Should().NotBeNullOrWhiteSpace();
+        login.RefreshTokenExpiresAtUtc.Should().BeAfter(DateTimeOffset.UtcNow);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<NodeFlowDbContext>();
+        var user = await dbContext.Users.AsNoTracking().SingleAsync(u => u.Email == createRequest.Email);
+        user.RefreshToken.Should().Be(login.RefreshToken);
+        user.RefreshTokenExpiresAtUtc.Should().NotBeNull();
+        user.RefreshTokenExpiresAtUtc.Should().Be(login.RefreshTokenExpiresAtUtc);
+    }
+
     private sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)

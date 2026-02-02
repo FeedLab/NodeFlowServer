@@ -20,8 +20,15 @@ public static class AuthEndpoints
         group.MapPost("/users", CreateUserAsync)
             .WithName("CreateUser");
 
-        return group.MapPost("/login", LoginAsync)
+        group.MapPost("/login", LoginAsync)
             .WithName("Login");
+
+        group.MapPost("/refresh", RefreshTokenAsync)
+            .WithName("RefreshToken");
+
+        return group.MapPost("/logout", LogoutAsync)
+            .RequireAuthorization()
+            .WithName("Logout");
     }
 
     private static async Task<IResult> CreateUserAsync(
@@ -121,8 +128,119 @@ public static class AuthEndpoints
             signingCredentials: credentials);
 
         var tokenValue = new JwtSecurityTokenHandler().WriteToken(token);
-        var response = new LoginResponse(tokenValue, expiresAtUtc, "Bearer");
+
+        // Generate refresh token
+        var refreshToken = GenerateRefreshToken();
+        var refreshTokenExpiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(options.RefreshTokenMinutes);
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiresAtUtc = refreshTokenExpiresAtUtc;
+        await repository.UpdateAsync(user, cancellationToken);
+
+        var response = new LoginResponse(tokenValue, expiresAtUtc, "Bearer", refreshToken, refreshTokenExpiresAtUtc);
         return Results.Ok(response);
+    }
+
+    private static async Task<IResult> RefreshTokenAsync(
+        RefreshTokenRequest request,
+        IUserRepository repository,
+        IOptions<JwtOptions> jwtOptions,
+        CancellationToken cancellationToken)
+    {
+        var refreshToken = request.RefreshToken?.Trim();
+
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return Results.BadRequest("RefreshToken is required.");
+        }
+
+        // We need to find the user by their refresh token
+        // Since refresh tokens are stored with users, we need GetByRefreshTokenAsync method
+        // For this implementation, you'll need to add this method to IUserRepository
+        // For now, this is a placeholder - you should implement GetByRefreshTokenAsync in your repository
+        var user = await repository.GetByRefreshTokenAsync(refreshToken, cancellationToken);
+
+        if (user == null)
+        {
+            return Results.Unauthorized();
+        }
+
+        // Verify the stored refresh token matches
+        if (user.RefreshToken != refreshToken)
+        {
+            return Results.Unauthorized();
+        }
+
+        // Check if refresh token is expired
+        if (user.RefreshTokenExpiresAtUtc == null || user.RefreshTokenExpiresAtUtc <= DateTimeOffset.UtcNow)
+        {
+            return Results.Unauthorized();
+        }
+
+        // Generate new access token
+        var options = jwtOptions.Value;
+        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.SigningKey));
+        var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+        var expiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(options.AccessTokenMinutes);
+
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email)
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: options.Issuer,
+            audience: options.Audience,
+            claims: claims,
+            notBefore: DateTime.UtcNow,
+            expires: expiresAtUtc.UtcDateTime,
+            signingCredentials: credentials);
+
+        var tokenValue = new JwtSecurityTokenHandler().WriteToken(token);
+
+        // Generate new refresh token
+        var newRefreshToken = GenerateRefreshToken();
+        var refreshTokenExpiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(options.RefreshTokenMinutes);
+        user.RefreshToken = newRefreshToken;
+        user.RefreshTokenExpiresAtUtc = refreshTokenExpiresAtUtc;
+        await repository.UpdateAsync(user, cancellationToken);
+
+        var response = new LoginResponse(tokenValue, expiresAtUtc, "Bearer", newRefreshToken, refreshTokenExpiresAtUtc);
+        return Results.Ok(response);
+    }
+
+    private static async Task<IResult> LogoutAsync(
+        ClaimsPrincipal user,
+        IUserRepository repository,
+        CancellationToken cancellationToken)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? user.FindFirst(JwtRegisteredClaimNames.Sub);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var userEntity = await repository.GetByIdAsync(userId, cancellationToken);
+        if (userEntity == null)
+        {
+            return Results.Unauthorized();
+        }
+
+        // Clear refresh token from database
+        userEntity.RefreshToken = null;
+        userEntity.RefreshTokenExpiresAtUtc = null;
+        await repository.UpdateAsync(userEntity, cancellationToken);
+
+        return Results.Ok();
+    }
+
+    private static string GenerateRefreshToken()
+    {
+        var randomBytes = new byte[64];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomBytes);
+        return Convert.ToBase64String(randomBytes);
     }
 
     private static string HashPassword(string password)

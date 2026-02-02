@@ -12,6 +12,13 @@ public sealed class UserRepository : IUserRepository
         this.dbContext = dbContext;
     }
 
+    public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return dbContext.Users.FirstOrDefaultAsync(
+            user => user.Id == id,
+            cancellationToken);
+    }
+
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken)
     {
         return dbContext.Users.FirstOrDefaultAsync(
@@ -23,6 +30,13 @@ public sealed class UserRepository : IUserRepository
     {
         return dbContext.Users.FirstOrDefaultAsync(
             user => user.UserName == userName,
+            cancellationToken);
+    }
+
+    public Task<User?> GetByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        return dbContext.Users.FirstOrDefaultAsync(
+            user => user.RefreshToken == refreshToken,
             cancellationToken);
     }
 

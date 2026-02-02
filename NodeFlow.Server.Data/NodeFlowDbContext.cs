@@ -22,8 +22,11 @@ public sealed class NodeFlowDbContext : DbContext
             entity.Property(user => user.PasswordHash).HasMaxLength(256).IsRequired();
             entity.Property(user => user.CreatedAtUtc).IsRequired();
             entity.Property(user => user.LastLoginUtc);
+            entity.Property(user => user.RefreshToken).HasMaxLength(512);
+            entity.Property(user => user.RefreshTokenExpiresAtUtc);
             entity.HasIndex(user => user.Email).IsUnique();
             entity.HasIndex(user => user.UserName).IsUnique();
+            entity.HasIndex(user => user.RefreshToken);
         });
     }
 }
