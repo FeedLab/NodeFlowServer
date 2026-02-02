@@ -1,0 +1,6 @@
+@NodeFlow.Server_HostAddress = http://localhost:5220
+
+GET {{NodeFlow.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

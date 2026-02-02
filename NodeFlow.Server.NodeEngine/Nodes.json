@@ -1,0 +1,163 @@
+﻿{
+  "Nodes": [
+    {
+      "Id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "TypeId": "Inject",
+      "Name": "Node1",
+      "IsEnabled": true,
+      "ActivateOnStart": true,
+      "Outputs": [
+        {
+          "Name": "Output 1",
+          "ConnectsToNodeId": [
+            "f6e5d4c3-b2a1-4f5e-6d7c-8b9a0e1f2d3c",
+            "0e5ea47f-a299-4410-a718-4131685e3610",
+            "91744f2d-4b3e-4dc8-a890-df2e8a364907",
+            "04d42414-6992-4201-8d29-da4b1facfbb6"
+          ]
+        }
+      ],
+      "Inputs": [],
+      "ActivateAfter": {
+        "Type": "Second",
+        "Value": 10
+      },
+      "Parameters": [
+        {
+          "Name": "RandomMin",
+          "Type": "number",
+          "Value": "1000",
+          "Source": "primitive"
+        },
+        {
+          "Name": "RandomMax",
+          "Type": "number",
+          "Value": "2000",
+          "Source": "primitive"
+        },
+        {
+          "Name": "Count",
+          "Type": "number",
+          "Value": "100",
+          "Source": "primitive"
+        },
+        {
+          "Name": "Description",
+          "Type": "string",
+          "Value": "Monday",
+          "Source": "primitive"
+        },
+        {
+          "Name": "ComputerName",
+          "Type": "string",
+          "Value": "COMPUTERNAME",
+          "Source": "environment"
+        },
+        {
+          "Name": "Processors",
+          "Type": "number",
+          "Value": "NUMBER_OF_PROCESSORS",
+          "Source": "environment"
+        }
+      ]
+    },
+    {
+      "Id": "f6e5d4c3-b2a1-4f5e-6d7c-8b9a0e1f2d3c",
+      "TypeId": "Debug",
+      "Name": "Node2",
+      "IsEnabled": true,
+      "ActivateOnStart": false,
+      "Outputs": [],
+      "Inputs": [
+        {
+          "Name": "Input 1",
+          "ConnectsToParentNodeId": [
+            "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+          ]
+        }
+      ]
+    },
+    {
+      "Id": "0e5ea47f-a299-4410-a718-4131685e3610",
+      "TypeId": "RandomNumber",
+      "Name": "Node3",
+      "IsEnabled": true,
+      "ActivateOnStart": false,
+      "Outputs": [
+        "fdec97b0-c81a-4062-a9c8-76e87c4d6691"
+      ],
+      "Inputs": [
+        {
+          "Name": "Input 1",
+          "ConnectsToParentNodeId": [
+            "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+          ]
+        }
+      ],
+      "Source": "Fixed",
+      "Min": 222,
+      "Max": 333
+    }, 
+    {
+      "Id": "91744f2d-4b3e-4dc8-a890-df2e8a364907",
+      "TypeId": "RandomNumber",
+      "Name": "Node3",
+      "IsEnabled": true,
+      "ActivateOnStart": false,
+      "Outputs": [
+        "fdec97b0-c81a-4062-a9c8-76e87c4d6691"
+      ],
+      "Inputs": [
+        {
+          "Name": "Input 1",
+          "ConnectsToParentNodeId": [
+            "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+          ]
+        }
+      ],
+      "Source": "FromInput",
+      "Min": 0,
+      "Max": 0
+    },
+    {
+      "Id": "fdec97b0-c81a-4062-a9c8-76e87c4d6691",
+      "TypeId": "Debug",
+      "Name": "Node4",
+      "IsEnabled": true,
+      "ActivateOnStart": false,
+      "Outputs": [],
+      "Inputs": [
+        {
+          "Name": "Input 1",
+          "ConnectsToParentNodeId": [
+            "0e5ea47f-a299-4410-a718-4131685e3610"
+          ]
+        }
+      ]
+    },
+    {
+      "Id": "04d42414-6992-4201-8d29-da4b1facfbb6",
+      "TypeId": "Delay",
+      "Name": "Node5",
+      "IsEnabled": true,
+      "ActivateOnStart": false,
+      "Outputs": [
+        "fdec97b0-c81a-4062-a9c8-76e87c4d6691"
+      ],
+      "Inputs": [
+        {
+          "Name": "Input 1",
+          "ConnectsToParentNodeId": [
+            "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+          ]
+        }
+      ],
+      "Delay": {
+        "PathToDelayNode": "",
+        "Source": "Fixed",
+        "Type": "Second",
+        "Value": 10
+      }
+    }
+  ]
+}
