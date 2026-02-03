@@ -1,8 +1,10 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
 using System.Text;
+using NodeFlow.Server.Contracts.Auth.Validation;
 using NodeFlow.Server.Data;
 using NodeFlow.Server.Data.Repositories;
 using NodeFlow.Server.Endpoints;
@@ -19,6 +21,7 @@ public class Program
         // Add services to the container.
         builder.Services.AddAuthorization();
         builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+        builder.Services.AddValidatorsFromAssemblyContaining<CreateUserRequestValidator>();
 
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>

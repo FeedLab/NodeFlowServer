@@ -6,6 +6,7 @@ using NodeFlow.Server.Contracts.Auth.Request;
 using NodeFlow.Server.Contracts.Auth.Response;
 using NodeFlow.Server.Data.Entities;
 using NodeFlow.Server.Data.Repositories;
+using NodeFlow.Server.Endpoints.Filters;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -18,12 +19,15 @@ public static class AuthEndpoints
         var group = endpoints.MapGroup("/auth");
 
         group.MapPost("/users", CreateUserAsync)
+            .WithRequestValidation<CreateUserRequest>()
             .WithName("CreateUser");
 
         group.MapPost("/login", LoginAsync)
+            .WithRequestValidation<LoginRequest>()
             .WithName("Login");
 
         group.MapPost("/refresh", RefreshTokenAsync)
+            .WithRequestValidation<RefreshTokenRequest>()
             .WithName("RefreshToken");
 
         return group.MapPost("/logout", LogoutAsync)
@@ -36,14 +40,9 @@ public static class AuthEndpoints
         IUserRepository repository,
         CancellationToken cancellationToken)
     {
-        var userName = request.UserName?.Trim();
-        var email = request.Email?.Trim();
+        var userName = request.UserName.Trim();
+        var email = request.Email.Trim();
         var password = request.Password;
-
-        if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-        {
-            return Results.BadRequest("UserName, Email, and Password are required.");
-        }
 
         var existingByEmail = await repository.GetByEmailAsync(email, cancellationToken);
         if (existingByEmail is not null)
@@ -80,13 +79,8 @@ public static class AuthEndpoints
         CancellationToken cancellationToken)
     {
         Console.WriteLine("[DEBUG_LOG] LoginAsync started");
-        var identifier = request.Identifier?.Trim();
+        var identifier = request.Identifier.Trim();
         var password = request.Password;
-
-        if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(password))
-        {
-            return Results.BadRequest("Identifier and Password are required.");
-        }
 
         var user = await repository.GetByEmailAsync(identifier, cancellationToken);
         if (user is null)
@@ -151,12 +145,7 @@ public static class AuthEndpoints
         IOptions<JwtOptions> jwtOptions,
         CancellationToken cancellationToken)
     {
-        var refreshToken = request.RefreshToken?.Trim();
-
-        if (string.IsNullOrWhiteSpace(refreshToken))
-        {
-            return Results.BadRequest("RefreshToken is required.");
-        }
+        var refreshToken = request.RefreshToken.Trim();
 
         // We need to find the user by their refresh token
         // Since refresh tokens are stored with users, we need GetByRefreshTokenAsync method
