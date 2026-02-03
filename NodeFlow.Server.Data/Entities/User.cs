@@ -12,9 +12,7 @@ public sealed class User
 
     public DateTimeOffset CreatedAtUtc { get; set; }
 
-    public DateTimeOffset? LastLoginUtc { get; set; }
+    public UserProfile? Profile { get; set; }
 
-    public string? RefreshToken { get; set; }
-
-    public DateTimeOffset? RefreshTokenExpiresAtUtc { get; set; }
+    public ICollection<Session> Sessions { get; set; } = new List<Session>();
 }

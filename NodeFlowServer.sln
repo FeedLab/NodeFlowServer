@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeFlow.Server.Integration
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeFlow.Server.Data", "NodeFlow.Server.Data\NodeFlow.Server.Data.csproj", "{1556F62E-D8B9-4D83-98A6-3F9391D56185}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeFlow.Server.Domain", "NodeFlow.Server.Domain\NodeFlow.Server.Domain.csproj", "{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -96,6 +98,18 @@ Global
 		{1556F62E-D8B9-4D83-98A6-3F9391D56185}.Release|x64.Build.0 = Release|Any CPU
 		{1556F62E-D8B9-4D83-98A6-3F9391D56185}.Release|x86.ActiveCfg = Release|Any CPU
 		{1556F62E-D8B9-4D83-98A6-3F9391D56185}.Release|x86.Build.0 = Release|Any CPU
+		{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}.Debug|x64.Build.0 = Debug|Any CPU
+		{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}.Debug|x86.Build.0 = Debug|Any CPU
+		{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}.Release|x64.ActiveCfg = Release|Any CPU
+		{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}.Release|x64.Build.0 = Release|Any CPU
+		{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}.Release|x86.ActiveCfg = Release|Any CPU
+		{7CE33FEF-CB5D-4A8B-B9C0-8E08ADDF129A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

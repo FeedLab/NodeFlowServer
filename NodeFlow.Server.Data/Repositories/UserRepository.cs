@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using NodeFlow.Server.Data.Entities;
+using NodeFlow.Server.Data.Mapping;
+using NodeFlow.Server.Domain.Models;
+using NodeFlow.Server.Domain.Repositories;
 
 namespace NodeFlow.Server.Data.Repositories;
 
@@ -12,44 +14,45 @@ public sealed class UserRepository : IUserRepository
         this.dbContext = dbContext;
     }
 
-    public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return dbContext.Users.FirstOrDefaultAsync(
+        var entity = await dbContext.Users.FirstOrDefaultAsync(
             user => user.Id == id,
             cancellationToken);
+
+        return entity?.ToModel();
     }
 
-    public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken)
+    public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken)
     {
-        return dbContext.Users.FirstOrDefaultAsync(
+        var entity = await dbContext.Users.FirstOrDefaultAsync(
             user => user.Email == email,
             cancellationToken);
+
+        return entity?.ToModel();
     }
 
-    public Task<User?> GetByUserNameAsync(string userName, CancellationToken cancellationToken)
+    public async Task<User?> GetByUserNameAsync(string userName, CancellationToken cancellationToken)
     {
-        return dbContext.Users.FirstOrDefaultAsync(
+        var entity = await dbContext.Users.FirstOrDefaultAsync(
             user => user.UserName == userName,
             cancellationToken);
-    }
 
-    public Task<User?> GetByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken)
-    {
-        return dbContext.Users.FirstOrDefaultAsync(
-            user => user.RefreshToken == refreshToken,
-            cancellationToken);
+        return entity?.ToModel();
     }
 
     public async Task<User> CreateAsync(User user, CancellationToken cancellationToken)
     {
-        dbContext.Users.Add(user);
+        var entity = user.ToEntity();
+        dbContext.Users.Add(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return user;
+        return entity.ToModel();
     }
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken)
     {
-        dbContext.Users.Update(user);
+        var entity = user.ToEntity();
+        dbContext.Users.Update(entity);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

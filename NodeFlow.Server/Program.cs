@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
+using Scalar.AspNetCore;
 using System.Text;
 using NodeFlow.Server.Contracts.Auth.Validation;
 using NodeFlow.Server.Data;
 using NodeFlow.Server.Data.Repositories;
+using NodeFlow.Server.Domain.Repositories;
 using NodeFlow.Server.Endpoints;
 using NodeFlow.Server.Endpoints.Auth;
 
@@ -73,10 +75,15 @@ public class Program
             else
             {
                 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-                options.UseSqlServer(connectionString);
+                options.UseSqlServer(connectionString, sqlServerOptions =>
+                {
+                    sqlServerOptions.EnableRetryOnFailure();
+                    sqlServerOptions.MigrationsAssembly("NodeFlow.Server.Data");
+                });
             }
         });
         builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
@@ -87,6 +94,14 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
+            app.MapScalarApiReference(options =>
+            {
+                options.WithOpenApiRoutePattern("/openapi/v1.json")
+                    .WithTitle("NodeFlow API")
+                    .WithTheme(ScalarTheme.DeepSpace)
+                    .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
+                    ;
+            });
         }
 
         app.UseHttpsRedirection();

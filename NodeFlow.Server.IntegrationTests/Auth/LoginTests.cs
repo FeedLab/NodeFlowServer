@@ -16,7 +16,7 @@ namespace NodeFlow.Server.IntegrationTests.Auth;
 public sealed class LoginTests
 {
     [Fact]
-    public async Task Login_Returns_Bearer_Token_And_Updates_LastLogin()
+    public async Task Login_Returns_Bearer_Token_And_Creates_Session()
     {
         await using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -39,12 +39,14 @@ public sealed class LoginTests
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<NodeFlowDbContext>();
         var user = await dbContext.Users.AsNoTracking().SingleAsync(u => u.Email == createRequest.Email);
-        user.LastLoginUtc.Should().NotBeNull();
-        user.LastLoginUtc.Should().BeAfter(DateTimeOffset.UtcNow.AddMinutes(-1));
+        var session = await dbContext.Sessions.AsNoTracking().SingleAsync(s => s.UserId == user.Id);
+        session.Should().NotBeNull();
+        session.CreatedAtUtc.Should().BeAfter(DateTimeOffset.UtcNow.AddMinutes(-1));
+        session.LastAccessedAtUtc.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task Login_Returns_RefreshToken_And_Stores_In_Database()
+    public async Task Login_Returns_RefreshToken_And_Stores_In_Session()
     {
         await using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -66,9 +68,9 @@ public sealed class LoginTests
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<NodeFlowDbContext>();
         var user = await dbContext.Users.AsNoTracking().SingleAsync(u => u.Email == createRequest.Email);
-        user.RefreshToken.Should().Be(login.RefreshToken);
-        user.RefreshTokenExpiresAtUtc.Should().NotBeNull();
-        user.RefreshTokenExpiresAtUtc.Should().Be(login.RefreshTokenExpiresAtUtc);
+        var session = await dbContext.Sessions.AsNoTracking().SingleAsync(s => s.UserId == user.Id);
+        session.RefreshToken.Should().Be(login.RefreshToken);
+        session.ExpiresAtUtc.Should().Be(login.RefreshTokenExpiresAtUtc);
     }
 
     private sealed class TestWebApplicationFactory : WebApplicationFactory<Program>

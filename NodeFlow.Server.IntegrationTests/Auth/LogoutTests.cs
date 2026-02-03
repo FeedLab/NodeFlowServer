@@ -17,7 +17,7 @@ namespace NodeFlow.Server.IntegrationTests.Auth;
 public sealed class LogoutTests
 {
     [Fact]
-    public async Task Logout_Clears_RefreshToken_From_Database()
+    public async Task Logout_Deletes_All_Sessions_From_Database()
     {
         await using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -30,13 +30,14 @@ public sealed class LogoutTests
         var loginResponse = await client.PostAsJsonAsync("/auth/login", loginRequest);
         var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
 
-        // Verify refresh token exists in database
+        // Verify session exists in database
         using (var scope = factory.Services.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<NodeFlowDbContext>();
             var user = await dbContext.Users.AsNoTracking().SingleAsync(u => u.Email == createRequest.Email);
-            user.RefreshToken.Should().NotBeNullOrWhiteSpace();
-            user.RefreshTokenExpiresAtUtc.Should().NotBeNull();
+            var sessions = await dbContext.Sessions.AsNoTracking().Where(s => s.UserId == user.Id).ToListAsync();
+            sessions.Should().HaveCount(1);
+            sessions[0].RefreshToken.Should().NotBeNullOrWhiteSpace();
         }
 
         // Logout with bearer token
@@ -45,13 +46,13 @@ public sealed class LogoutTests
 
         logoutResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Verify refresh token was cleared from database
+        // Verify all sessions were deleted from database
         using (var scope = factory.Services.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<NodeFlowDbContext>();
             var user = await dbContext.Users.AsNoTracking().SingleAsync(u => u.Email == createRequest.Email);
-            user.RefreshToken.Should().BeNull();
-            user.RefreshTokenExpiresAtUtc.Should().BeNull();
+            var sessions = await dbContext.Sessions.AsNoTracking().Where(s => s.UserId == user.Id).ToListAsync();
+            sessions.Should().BeEmpty();
         }
     }
 

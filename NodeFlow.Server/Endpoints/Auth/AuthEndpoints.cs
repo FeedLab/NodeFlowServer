@@ -4,8 +4,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NodeFlow.Server.Contracts.Auth.Request;
 using NodeFlow.Server.Contracts.Auth.Response;
-using NodeFlow.Server.Data.Entities;
-using NodeFlow.Server.Data.Repositories;
+using NodeFlow.Server.Domain.Models;
+using NodeFlow.Server.Domain.Repositories;
 using NodeFlow.Server.Endpoints.Filters;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -28,6 +28,7 @@ public static class AuthEndpoints
 
         group.MapPost("/refresh", RefreshTokenAsync)
             .WithRequestValidation<RefreshTokenRequest>()
+            .RequireAuthorization()
             .WithName("RefreshToken");
 
         return group.MapPost("/logout", LogoutAsync)
@@ -74,7 +75,8 @@ public static class AuthEndpoints
 
     private static async Task<IResult> LoginAsync(
         LoginRequest request,
-        IUserRepository repository,
+        IUserRepository userRepository,
+        ISessionRepository sessionRepository,
         IOptions<JwtOptions> jwtOptions,
         CancellationToken cancellationToken)
     {
@@ -82,10 +84,10 @@ public static class AuthEndpoints
         var identifier = request.Identifier.Trim();
         var password = request.Password;
 
-        var user = await repository.GetByEmailAsync(identifier, cancellationToken);
+        var user = await userRepository.GetByEmailAsync(identifier, cancellationToken);
         if (user is null)
         {
-            user = await repository.GetByUserNameAsync(identifier, cancellationToken);
+            user = await userRepository.GetByUserNameAsync(identifier, cancellationToken);
         }
 
         if (user is null)
@@ -100,9 +102,6 @@ public static class AuthEndpoints
             Console.WriteLine("[DEBUG_LOG] Invalid password");
             return Results.Unauthorized();
         }
-
-        user.LastLoginUtc = DateTimeOffset.UtcNow;
-        await repository.UpdateAsync(user, cancellationToken);
 
         var options = jwtOptions.Value;
         Console.WriteLine($"[DEBUG_LOG] JwtOptions: Issuer={options.Issuer}, Audience={options.Audience}, SigningKey={options.SigningKey}");
@@ -128,12 +127,19 @@ public static class AuthEndpoints
         var tokenValue = new JwtSecurityTokenHandler().WriteToken(token);
         Console.WriteLine($"[DEBUG_LOG] Generated Token: {tokenValue}");
 
-        // Generate refresh token
+        // Create new session
         var refreshToken = GenerateRefreshToken();
         var refreshTokenExpiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(options.RefreshTokenMinutes);
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiresAtUtc = refreshTokenExpiresAtUtc;
-        await repository.UpdateAsync(user, cancellationToken);
+        var session = new Session
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            RefreshToken = refreshToken,
+            ExpiresAtUtc = refreshTokenExpiresAtUtc,
+            CreatedAtUtc = DateTimeOffset.UtcNow,
+            LastAccessedAtUtc = DateTimeOffset.UtcNow
+        };
+        await sessionRepository.CreateAsync(session, cancellationToken);
 
         var response = new LoginResponse(tokenValue, expiresAtUtc, "Bearer", refreshToken, refreshTokenExpiresAtUtc);
         return Results.Ok(response);
@@ -141,34 +147,26 @@ public static class AuthEndpoints
 
     private static async Task<IResult> RefreshTokenAsync(
         RefreshTokenRequest request,
-        IUserRepository repository,
+        ISessionRepository sessionRepository,
         IOptions<JwtOptions> jwtOptions,
         CancellationToken cancellationToken)
     {
         var refreshToken = request.RefreshToken.Trim();
 
-        // We need to find the user by their refresh token
-        // Since refresh tokens are stored with users, we need GetByRefreshTokenAsync method
-        // For this implementation, you'll need to add this method to IUserRepository
-        // For now, this is a placeholder - you should implement GetByRefreshTokenAsync in your repository
-        var user = await repository.GetByRefreshTokenAsync(refreshToken, cancellationToken);
+        var session = await sessionRepository.GetByRefreshTokenAsync(refreshToken, cancellationToken);
 
-        if (user == null)
-        {
-            return Results.Unauthorized();
-        }
-
-        // Verify the stored refresh token matches
-        if (user.RefreshToken != refreshToken)
+        if (session == null)
         {
             return Results.Unauthorized();
         }
 
         // Check if refresh token is expired
-        if (user.RefreshTokenExpiresAtUtc == null || user.RefreshTokenExpiresAtUtc <= DateTimeOffset.UtcNow)
+        if (session.ExpiresAtUtc <= DateTimeOffset.UtcNow)
         {
             return Results.Unauthorized();
         }
+
+        var user = session.User!;
 
         // Generate new access token
         var options = jwtOptions.Value;
@@ -196,9 +194,18 @@ public static class AuthEndpoints
         // Generate new refresh token
         var newRefreshToken = GenerateRefreshToken();
         var refreshTokenExpiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(options.RefreshTokenMinutes);
-        user.RefreshToken = newRefreshToken;
-        user.RefreshTokenExpiresAtUtc = refreshTokenExpiresAtUtc;
-        await repository.UpdateAsync(user, cancellationToken);
+        var updatedSession = new Session
+        {
+            Id = session.Id,
+            UserId = session.UserId,
+            RefreshToken = newRefreshToken,
+            ExpiresAtUtc = refreshTokenExpiresAtUtc,
+            CreatedAtUtc = session.CreatedAtUtc,
+            LastAccessedAtUtc = DateTimeOffset.UtcNow,
+            IpAddress = session.IpAddress,
+            UserAgent = session.UserAgent
+        };
+        await sessionRepository.UpdateAsync(updatedSession, cancellationToken);
 
         var response = new LoginResponse(tokenValue, expiresAtUtc, "Bearer", newRefreshToken, refreshTokenExpiresAtUtc);
         return Results.Ok(response);
@@ -206,7 +213,7 @@ public static class AuthEndpoints
 
     private static async Task<IResult> LogoutAsync(
         ClaimsPrincipal user,
-        IUserRepository repository,
+        ISessionRepository sessionRepository,
         CancellationToken cancellationToken)
     {
         Console.WriteLine("[DEBUG_LOG] LogoutAsync started");
@@ -231,16 +238,8 @@ public static class AuthEndpoints
             return Results.Unauthorized();
         }
 
-        var userEntity = await repository.GetByIdAsync(userId, cancellationToken);
-        if (userEntity == null)
-        {
-            return Results.Unauthorized();
-        }
-
-        // Clear refresh token from database
-        userEntity.RefreshToken = null;
-        userEntity.RefreshTokenExpiresAtUtc = null;
-        await repository.UpdateAsync(userEntity, cancellationToken);
+        // Delete all sessions for this user
+        await sessionRepository.DeleteAllByUserIdAsync(userId, cancellationToken);
 
         return Results.Ok();
     }

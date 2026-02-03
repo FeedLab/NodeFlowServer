@@ -72,7 +72,7 @@ public sealed class RefreshTokenTests
     }
 
     [Fact]
-    public async Task RefreshToken_Updates_RefreshToken_In_Database()
+    public async Task RefreshToken_Updates_RefreshToken_In_Session()
     {
         await using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -92,12 +92,13 @@ public sealed class RefreshTokenTests
         var refreshResponse = await client.PostAsJsonAsync("/auth/refresh", refreshRequest);
         var refreshResult = await refreshResponse.Content.ReadFromJsonAsync<LoginResponse>();
 
-        // Verify database was updated
+        // Verify session was updated
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<NodeFlowDbContext>();
         var user = await dbContext.Users.AsNoTracking().SingleAsync(u => u.Email == createRequest.Email);
-        user.RefreshToken.Should().Be(refreshResult!.RefreshToken);
-        user.RefreshToken.Should().NotBe(oldRefreshToken);
+        var session = await dbContext.Sessions.AsNoTracking().SingleAsync(s => s.UserId == user.Id);
+        session.RefreshToken.Should().Be(refreshResult!.RefreshToken);
+        session.RefreshToken.Should().NotBe(oldRefreshToken);
     }
 
     [Fact]
