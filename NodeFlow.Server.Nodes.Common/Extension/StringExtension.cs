@@ -1,4 +1,4 @@
-﻿namespace NodeSharp.Nodes.Common.Extension;
+﻿namespace NodeFlow.Server.Nodes.Common.Extension;
 
 public static class StringExtension
 {

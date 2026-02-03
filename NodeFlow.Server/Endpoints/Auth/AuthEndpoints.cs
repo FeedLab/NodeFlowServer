@@ -79,6 +79,7 @@ public static class AuthEndpoints
         IOptions<JwtOptions> jwtOptions,
         CancellationToken cancellationToken)
     {
+        Console.WriteLine("[DEBUG_LOG] LoginAsync started");
         var identifier = request.Identifier?.Trim();
         var password = request.Password;
 
@@ -95,12 +96,14 @@ public static class AuthEndpoints
 
         if (user is null)
         {
+            Console.WriteLine("[DEBUG_LOG] User not found");
             return Results.Unauthorized();
         }
 
         var passwordHash = HashPassword(password);
         if (!string.Equals(user.PasswordHash, passwordHash, StringComparison.Ordinal))
         {
+            Console.WriteLine("[DEBUG_LOG] Invalid password");
             return Results.Unauthorized();
         }
 
@@ -108,6 +111,7 @@ public static class AuthEndpoints
         await repository.UpdateAsync(user, cancellationToken);
 
         var options = jwtOptions.Value;
+        Console.WriteLine($"[DEBUG_LOG] JwtOptions: Issuer={options.Issuer}, Audience={options.Audience}, SigningKey={options.SigningKey}");
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.SigningKey));
         var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
         var expiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(options.AccessTokenMinutes);
@@ -128,6 +132,7 @@ public static class AuthEndpoints
             signingCredentials: credentials);
 
         var tokenValue = new JwtSecurityTokenHandler().WriteToken(token);
+        Console.WriteLine($"[DEBUG_LOG] Generated Token: {tokenValue}");
 
         // Generate refresh token
         var refreshToken = GenerateRefreshToken();
@@ -215,9 +220,25 @@ public static class AuthEndpoints
         IUserRepository repository,
         CancellationToken cancellationToken)
     {
+        Console.WriteLine("[DEBUG_LOG] LogoutAsync started");
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            Console.WriteLine($"[DEBUG_LOG] User is authenticated: {user.Identity.Name}");
+        }
+        else
+        {
+            Console.WriteLine("[DEBUG_LOG] User is NOT authenticated");
+        }
+
+        foreach (var claim in user.Claims)
+        {
+            Console.WriteLine($"[DEBUG_LOG] Claim: {claim.Type} = {claim.Value}");
+        }
+
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? user.FindFirst(JwtRegisteredClaimNames.Sub);
         if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
         {
+            Console.WriteLine("[DEBUG_LOG] UserId claim not found or invalid");
             return Results.Unauthorized();
         }
 

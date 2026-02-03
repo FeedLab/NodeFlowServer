@@ -1,12 +1,12 @@
 ﻿using System.Collections.Specialized;
 using System.Text;
-using NodeSharp.Nodes.Common.Collection;
+using NodeFlow.Server.Nodes.Common.Collection;
 
-namespace NodeSharp.Nodes.Common.Helper;
+namespace NodeFlow.Server.Nodes.Common.Helper;
 
 public static class FileLogger
 {
-    private static readonly string LogPath = Path.Combine(FileSystem.AppDataDirectory, "app_log.txt");
+    private static readonly string LogPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "app_log.txt");
 
     private static readonly
         Dictionary<BaseNode, EventHandler<(BaseNode baseNode, string level, string message, string entry)>> Handlers =

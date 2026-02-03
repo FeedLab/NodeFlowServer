@@ -2,11 +2,11 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
-using NodeSharp.Nodes.Common.Services;
+using NodeFlow.Server.Nodes.Common.Services;
 
-namespace NodeSharp.Nodes.Common.Collection;
+namespace NodeFlow.Server.Nodes.Common.Collection;
 
-public sealed class ExplanationCollection(string typeId) : ObservableCollection<ExplanationItem>
+public sealed class ExplanationCollection(string typeId) : List<ExplanationItem>
 {
     private bool suppressSave;
 
@@ -15,7 +15,7 @@ public sealed class ExplanationCollection(string typeId) : ObservableCollection<
         try
         {
             suppressSave = true;
-            var explanationsPath = GetExplanationsPath();
+            var explanationsPath = ""; // GetExplanationsPath();
             if (string.IsNullOrEmpty(explanationsPath) || !Directory.Exists(explanationsPath))
             {
                 return;
@@ -38,7 +38,7 @@ public sealed class ExplanationCollection(string typeId) : ObservableCollection<
             Clear();
             foreach (var item in items)
             {
-                item.FileName = fileName;
+         //       item.FileName = fileName;
                 Add(item);
             }
         }
@@ -52,103 +52,103 @@ public sealed class ExplanationCollection(string typeId) : ObservableCollection<
         }
     }
 
-    private void SaveToFile()
-    {
-        if (suppressSave || string.IsNullOrWhiteSpace(typeId))
-        {
-            return;
-        }
+    // private void SaveToFile()
+    // {
+    //     if (suppressSave || string.IsNullOrWhiteSpace(typeId))
+    //     {
+    //         return;
+    //     }
+    //
+    //     try
+    //     {
+    //         var explanationsPath = GetExplanationsPath();
+    //         if (string.IsNullOrEmpty(explanationsPath))
+    //         {
+    //             return;
+    //         }
+    //
+    //         Directory.CreateDirectory(explanationsPath);
+    //         var filePath = Path.Combine(explanationsPath, $"{typeId}.json");
+    //         var options = new JsonSerializerOptions { WriteIndented = true };
+    //         var json = JsonSerializer.Serialize(this, options);
+    //         File.WriteAllText(filePath, json);
+    //     }
+    //     catch (System.Exception ex)
+    //     {
+    //         Debug.WriteLine($"Failed to save explanations for {typeId}: {ex.Message}");
+    //     }
+    // }
 
-        try
-        {
-            var explanationsPath = GetExplanationsPath();
-            if (string.IsNullOrEmpty(explanationsPath))
-            {
-                return;
-            }
+    // protected override void Insert(int index, ExplanationItem item)
+    // {
+    //     PrepareItem(item);
+    //     base.InsertItem(index, item);
+    //     if (!suppressSave)
+    //     {
+    //         SaveToFile();
+    //     }
+    // }
+    //
+    // protected override void SetItem(int index, ExplanationItem item)
+    // {
+    //     var existing = this[index];
+    //     existing.PropertyChanged -= OnItemPropertyChanged;
+    //     PrepareItem(item);
+    //     base.SetItem(index, item);
+    //     if (!suppressSave)
+    //     {
+    //         SaveToFile();
+    //     }
+    // }
+    //
+    // protected override void RemoveItem(int index)
+    // {
+    //     var existing = this[index];
+    //     existing.PropertyChanged -= OnItemPropertyChanged;
+    //     base.RemoveItem(index);
+    //     if (!suppressSave)
+    //     {
+    //         SaveToFile();
+    //     }
+    // }
 
-            Directory.CreateDirectory(explanationsPath);
-            var filePath = Path.Combine(explanationsPath, $"{typeId}.json");
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            var json = JsonSerializer.Serialize(this, options);
-            File.WriteAllText(filePath, json);
-        }
-        catch (System.Exception ex)
-        {
-            Debug.WriteLine($"Failed to save explanations for {typeId}: {ex.Message}");
-        }
-    }
+    // protected override void ClearItems()
+    // {
+    //     foreach (var item in this)
+    //     {
+    //         item.PropertyChanged -= OnItemPropertyChanged;
+    //     }
+    //
+    //     base.ClearItems();
+    //     if (!suppressSave)
+    //     {
+    //         SaveToFile();
+    //     }
+    // }
 
-    protected override void InsertItem(int index, ExplanationItem item)
-    {
-        PrepareItem(item);
-        base.InsertItem(index, item);
-        if (!suppressSave)
-        {
-            SaveToFile();
-        }
-    }
+    // private void PrepareItem(ExplanationItem item)
+    // {
+    //     if (string.IsNullOrWhiteSpace(item.FileName))
+    //     {
+    //         item.FileName = $"{typeId}.json";
+    //     }
+    //
+    //     item.PropertyChanged += OnItemPropertyChanged;
+    // }
+    //
+    // private void OnItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    // {
+    //     if (suppressSave || e.PropertyName == nameof(ExplanationItem.FileName))
+    //     {
+    //         return;
+    //     }
+    //
+    //     SaveToFile();
+    // }
 
-    protected override void SetItem(int index, ExplanationItem item)
-    {
-        var existing = this[index];
-        existing.PropertyChanged -= OnItemPropertyChanged;
-        PrepareItem(item);
-        base.SetItem(index, item);
-        if (!suppressSave)
-        {
-            SaveToFile();
-        }
-    }
-
-    protected override void RemoveItem(int index)
-    {
-        var existing = this[index];
-        existing.PropertyChanged -= OnItemPropertyChanged;
-        base.RemoveItem(index);
-        if (!suppressSave)
-        {
-            SaveToFile();
-        }
-    }
-
-    protected override void ClearItems()
-    {
-        foreach (var item in this)
-        {
-            item.PropertyChanged -= OnItemPropertyChanged;
-        }
-
-        base.ClearItems();
-        if (!suppressSave)
-        {
-            SaveToFile();
-        }
-    }
-
-    private void PrepareItem(ExplanationItem item)
-    {
-        if (string.IsNullOrWhiteSpace(item.FileName))
-        {
-            item.FileName = $"{typeId}.json";
-        }
-
-        item.PropertyChanged += OnItemPropertyChanged;
-    }
-
-    private void OnItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (suppressSave || e.PropertyName == nameof(ExplanationItem.FileName))
-        {
-            return;
-        }
-
-        SaveToFile();
-    }
-
-    private static string? GetExplanationsPath()
-    {
-        var popupSettings = AppService.GetService<Microsoft.Extensions.Options.IOptions<Configuration.ExplanationsPopupSettings>>()?.Value;
-        return popupSettings?.GetExpandedExplanationFilesDirectory();
-    }
+    // private static string? GetExplanationsPath()
+    // {
+    //     var popupSettings = AppService.GetService<Microsoft.Extensions.Options.IOptions<Configuration.ExplanationsPopupSettings>>()?.Value;
+    //     return popupSettings?.GetExpandedExplanationFilesDirectory();
+    // }
 }

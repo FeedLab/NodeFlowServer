@@ -1,8 +1,8 @@
 using System.Text.Json;
-using NodeSharp.Nodes.Common.Collection;
-using NodeSharp.Nodes.Common.Model;
+using NodeFlow.Server.Nodes.Common.Collection;
+using NodeFlow.Server.Nodes.Common.Model;
 
-namespace NodeSharp.Nodes.Common.Services;
+namespace NodeFlow.Server.Nodes.Common.Services;
 
 public class NodeFactory
 {
@@ -22,8 +22,7 @@ public class NodeFactory
         bool activateOnStart,
         int xPosition,
         int yPosition,
-        Storage storageParam,
-        Color backgroundColor)
+        Storage storageParam)
     {
         var nodeType = GetNodeType(typeId);
 
@@ -56,7 +55,6 @@ public class NodeFactory
         parameters[6] = xPosition;
         parameters[7] = yPosition;
         parameters[8] = storageParam;
-        parameters[9] = backgroundColor;
 
         // For any additional parameters (like RandomDataPayload, DelayPayload, etc.),
         // create default instances using Activator

@@ -1,82 +1,38 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using CommunityToolkit.Maui;
-using CommunityToolkit.Mvvm.ComponentModel;
-using NodeSharp.Nodes.Common.Collection;
-using NodeSharp.Nodes.Common.Exception;
-using NodeSharp.Nodes.Common.Extension;
-using NodeSharp.Nodes.Common.Model;
-using NodeSharp.Nodes.Common.Services;
+using NodeFlow.Server.Nodes.Common.Collection;
+using NodeFlow.Server.Nodes.Common.Exception;
+using NodeFlow.Server.Nodes.Common.Extension;
+using NodeFlow.Server.Nodes.Common.Model;
+using NodeFlow.Server.Nodes.Common.Services;
 
-namespace NodeSharp.Nodes.Common;
+namespace NodeFlow.Server.Nodes.Common;
 
-[SuppressMessage("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator",
-    "MVVMTK0045:Using [ObservableProperty] on fields is not AOT compatible for WinRT")]
-[SuppressMessage("Usage", "CsWinRT1030:Project does not enable unsafe blocks")]
-[SuppressMessage("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator",
-    "MVVMTK0020:Invalid use of attributes dependent on [ObservableProperty]")]
-public abstract partial class BaseNode : ObservableObject
+public abstract partial class BaseNode
 {
     public event EventHandler<(BaseNode baseNode, string level, string message, string entry)>? OnExitNodeMessage;
     public event EventHandler<BaseNode>? OnEnterNode;
     public event EventHandler<(BaseNode, Stopwatch)>? OnLeaveNode;
 
-    protected readonly IPopupService PopupService;
+    [field: JsonIgnore] public string OutputMessage { get; set; }
 
-    // [JsonIgnore] [NotifyPropertyChangedFor(nameof(HasOutputMessage))]
-    [ObservableProperty][JsonIgnore] private string outputMessage;
-
-    partial void OnOutputMessageChanged(string value)
-    {
-        OnPropertyChanged(nameof(HasOutputMessage));
-    }
-    // [JsonIgnore]
-    // public string OutputMessage
-    // {
-    //     get => outputMessage;
-    //     set
-    //     {
-    //         if (!string.IsNullOrEmpty(value))
-    //         {
-    //             SetProperty(ref outputMessage, value.ToPrettyJson());
-    //         }
-    //     }
-    // }
 
     [JsonIgnore] public bool HasOutputMessage => !string.IsNullOrEmpty(OutputMessage);
 
-    [ObservableProperty]
-    [property: JsonIgnore]
-    private Rect boxDimension;
-    
-    [ObservableProperty]
-    [property: JsonIgnore]
-    private Rect boxBodyDimension;
-    
-    [ObservableProperty]
-    [property: JsonIgnore]
-    private BoxNodeStatus boxNodeStatus;
 
-    [ObservableProperty]
-    [property: JsonIgnore]
-    private INodeInformation typeInformation;
+    [field: JsonIgnore] public BoxNodeStatus NodeStatus { get; }
 
-    [ObservableProperty]
-    [property: JsonIgnore]
-    private ContentView? nodeBodyComponent;
 
-    [ObservableProperty]
-    [property: JsonIgnore]
-    private ContentView? boxNodeStatusComponent;
+    [field: JsonIgnore] public INodeInformation TypeInformation { get; }
 
-    [ObservableProperty]
-    [property: JsonIgnore]
-    private ExplanationCollection explanations = new(string.Empty);
+
+    [field: JsonIgnore] public ExplanationCollection Explanations { get; } = new(string.Empty);
 
     [JsonIgnore] protected CancellationTokenSource Cts;
 
@@ -103,16 +59,12 @@ public abstract partial class BaseNode : ObservableObject
         bool activateOnStart,
         int xPosition,
         int yPosition,
-        Storage storage, 
-        Color backgroundColor)
+        Storage storage
+        )
     {
         Cts = new CancellationTokenSource();
         BoxNodeStatus = new BoxNodeStatus();
-        PopupService = AppService.GetRequiredService<IPopupService>();
         OutputMessage = string.Empty;
-        BackgroundColor = backgroundColor ?? Colors.White;
-        BoxDimension = new Rect(0, 0, 240, 60);
-        BoxBodyDimension = new Rect(0, 0, 140, 48);
 
         if (storage.GetNodeInformation().TryGetValue(typeId, out var nodeSharp))
         {
@@ -132,7 +84,7 @@ public abstract partial class BaseNode : ObservableObject
             {
                 for (var input = 0; input < nodeType.NumberOfInputs; input++)
                 {
-                    Inputs.Add(new Input(Guid.CreateVersion7(), "Input 1", new ObservableCollection<string>(),
+                    Inputs.Add(new Input(Guid.CreateVersion7(), "Input 1", new List<string>(),
                         new Point(1, 1)));
                 }
             }
@@ -141,7 +93,7 @@ public abstract partial class BaseNode : ObservableObject
             {
                 for (var output = 0; output < nodeType.NumberOfOutputs; output++)
                 {
-                    Outputs.Add(new Output(Guid.CreateVersion7(), "Output 1", new ObservableCollection<string>(),
+                    Outputs.Add(new Output(Guid.CreateVersion7(), "Output 1", new List<string>(),
                         new Point(1, 1)));
                 }
             }
@@ -164,6 +116,8 @@ public abstract partial class BaseNode : ObservableObject
         Explanations.LoadFromFile();
     }
 
+    public BoxNodeStatus BoxNodeStatus { get; set; }
+
 
     protected BaseNode(
         BaseNodeList nodes,
@@ -175,15 +129,11 @@ public abstract partial class BaseNode : ObservableObject
         int xPosition,
         int yPosition,
         List<Output> outputs,
-        List<Input> inputs)
+        List<Input> inputs,
+        Storage storage)
     {
-        BoxNodeStatus = new BoxNodeStatus();
+        NodeStatus = new BoxNodeStatus();
         OutputMessage = string.Empty;
-        BoxDimension = new Rect(0, 0, 260, 60);
-        BoxBodyDimension = new Rect(0, 0, 140, 48);
-
-        var storage = AppService.GetRequiredService<Storage>();
-        PopupService = AppService.GetRequiredService<IPopupService>();
 
         if (storage.GetNodeInformation().TryGetValue(typeId, out var nodeSharp))
         {
@@ -206,7 +156,6 @@ public abstract partial class BaseNode : ObservableObject
         Y = yPosition;
         Outputs = outputs;
         Inputs = inputs;
-        BackgroundColor = TypeInformation.Background ?? Colors.White;
 
         Explanations = new ExplanationCollection(TypeId);
         Explanations.LoadFromFile();
@@ -368,174 +317,43 @@ public abstract partial class BaseNode : ObservableObject
 
     public virtual void Reset()
     {
-        BoxNodeStatus.Reset();
-    }
-
-    public void ValidateInputAndOutput()
-    {
-        Debug.WriteLine($"Validating NodeInject: {Name} (Id: {Id})");
-        ValidateNodeId();
-
-        ValidateInputConnections(Nodes);
-        ValidateOutputConnections(Nodes);
-
-        Debug.WriteLine($"NodeInject {Name} validation completed successfully");
-    }
-
-    private void ValidateNodeId()
-    {
-        Debug.WriteLine($"Validating NodeId: {Id}");
-        if (!Guid.TryParse(Id, out _))
-        {
-            Debug.WriteLine($"NodeId '{Id}' is not a valid GUID - throwing exception");
-            throw new InvalidOperationException($"NodeId '{Id}' is not a valid GUID.");
-        }
-
-        Debug.WriteLine("NodeId is valid");
-    }
-
-    private void ValidateOutputConnections(BaseNodeList baseNodeList)
-    {
-        Debug.WriteLine($"Validating {Outputs.Count} output connections");
-
-        // ValidateConnections(
-        //     baseNodeList,
-        //     connections: Outputs.SelectMany(o =>
-        //         o.ConnectsToNodeId.Select(nodeId => (PortName: o.Name, NodeId: nodeId))),
-        //     idLabel: "Output ConnectsToNodeId",
-        //     missingNodeMessage: (portName, nodeId) =>
-        //         $"Output '{portName}' connects to non-existing node '{nodeId}'. ");
-    }
-
-    private void ValidateInputConnections(BaseNodeList baseNodeList)
-    {
-        Debug.WriteLine($"Validating {Inputs.Count} input connections");
-
-        // ValidateConnections(
-        //     baseNodeList,
-        //     connections: Inputs.SelectMany(i =>
-        //         i.ConnectsToParentNodeId.Select(nodeId => (PortName: i.Name, NodeId: nodeId))),
-        //     idLabel: "Input ConnectsToParentNodeId",
-        //     missingNodeMessage: (portName, nodeId) =>
-        //         $"Input '{portName}' connects to non-existing parent node '{nodeId}'. ");
-    }
-
-    private void ValidateConnections(
-        BaseNodeList baseNodeList,
-        IEnumerable<(string PortName, string NodeId)> connections,
-        string idLabel,
-        Func<string, string, string> missingNodeMessage)
-    {
-        var errors = new StringBuilder();
-
-        foreach (var (portName, nodeId) in connections)
-        {
-            Debug.WriteLine($"Checking connection for '{portName}': {nodeId}");
-
-            if (!Guid.TryParse(nodeId, out _))
-            {
-                Debug.WriteLine($"Invalid GUID: {nodeId}");
-                errors.Append($"{idLabel} '{nodeId}' is not a valid GUID. ");
-                continue;
-            }
-
-            if (baseNodeList.All(n => n.Id != nodeId))
-            {
-                Debug.WriteLine($"Node not found: {nodeId}");
-                errors.Append(missingNodeMessage(portName, nodeId));
-                continue;
-            }
-
-            Debug.WriteLine($"Node connection valid: {nodeId}");
-        }
-
-        if (errors.Length > 0)
-        {
-            Debug.WriteLine($"Validation errors found: {errors}");
-            throw new InvalidOperationException(errors.ToString().Trim());
-        }
-    }
-
-    protected static JsonElement GetProperty(JsonElement nodeElement, string propertyName)
-    {
-        try
-        {
-            return nodeElement.GetProperty(propertyName);
-        }
-        catch (System.Exception e)
-        {
-            throw new NodeParseException(propertyName, e);
-        }
-    }
-
-    protected static bool TryGetProperty(JsonElement nodeElement, string propertyName, out JsonElement propertyValue)
-    {
-        try
-        {
-            return nodeElement.TryGetProperty(propertyName, out propertyValue);
-        }
-        catch (System.Exception e)
-        {
-            throw new NodeParseException(propertyName, e);
-        }
     }
 
     private string FormatNode() => $"{Name}:{TypeId}";
 
-    public virtual void RecalculateInputNodes(double height)
-    {
-    }
-
-    public virtual void RecalculateOutputNodes(double height)
-    {
-    }
 }
 
-public partial class Input : ObservableObject
+public partial class Input(
+    Guid id,
+    string name,
+    List<string> connectsToParentNodeId,
+    Point startPosition)
 {
-    public Input(Guid id, string name, ObservableCollection<string> connectsToParentNodeId, Point startPosition)
-    {
-        Id = id;
-        Name = name;
-        ConnectsToParentNodeId = connectsToParentNodeId;
-        StartPosition = startPosition;
-    }
+    [field: JsonIgnore] public Point StartPosition { get; } = startPosition;
 
-    [ObservableProperty][JsonIgnore] private Point startPosition;
+    [field: JsonIgnore] public Guid Id { get; } = id;
 
-    [ObservableProperty][JsonIgnore] private Guid id;
+    [field: JsonIgnore] public string Name { get; } = name;
 
-    [ObservableProperty][JsonIgnore] private string name;
-
-    [ObservableProperty][JsonIgnore] private ObservableCollection<string> connectsToParentNodeId;
+    [field: JsonIgnore] public List<string> ConnectsToParentNodeId { get; } = connectsToParentNodeId;
 }
 
-public partial class Output : ObservableObject
+public class Output(Guid id, string name, List<string> connectsToNodeId, Point startPosition)
 {
-    public Output(Guid id, string name, ObservableCollection<string> connectsToNodeId, Point startPosition)
-    {
-        Id = id;
-        Name = name;
-        ConnectsToNodeId = connectsToNodeId;
-        StartPosition = startPosition;
-    }
+    [field: JsonIgnore] public Point StartPosition { get; } = startPosition;
 
-    [ObservableProperty][JsonIgnore] private Point startPosition;
+    [field: JsonIgnore] public Guid Id { get; } = id;
 
-    [ObservableProperty][JsonIgnore] private Guid id;
+    [field: JsonIgnore] public string Name { get; } = name;
 
-    [ObservableProperty][JsonIgnore] private string name;
-
-    [ObservableProperty][JsonIgnore] private ObservableCollection<string> connectsToNodeId;
+    [field: JsonIgnore] public List<string> ConnectsToNodeId { get; } = connectsToNodeId;
 }
 
-[SuppressMessage("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator",
-    "MVVMTK0045:Using [ObservableProperty] on fields is not AOT compatible for WinRT")]
-public partial class BoxNodeStatus : ObservableObject
+public partial class BoxNodeStatus
 {
-    [JsonIgnore][ObservableProperty] private decimal value;
+    [field: JsonIgnore] public decimal Value { get; set; }
 
-    [JsonIgnore][ObservableProperty] private string message;
+    [field: JsonIgnore] public string Message { get; set; }
 
     public BoxNodeStatus()
     {
@@ -550,18 +368,18 @@ public partial class BoxNodeStatus : ObservableObject
     }
 }
 
-public partial class ExplanationItem : ObservableObject
+public partial class ExplanationItem 
 {
-    [ObservableProperty]
+    
     private string label = string.Empty;
 
-    [ObservableProperty]
+    
     private string description = string.Empty;
 
-    [ObservableProperty]
+    
     private string code = string.Empty;
 
-    [ObservableProperty]
+    
     [property: JsonIgnore]
     private string fileName = string.Empty;
 }

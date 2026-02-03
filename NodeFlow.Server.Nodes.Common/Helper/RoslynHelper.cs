@@ -2,9 +2,9 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Newtonsoft.Json;
-using NodeSharp.Nodes.Common.Services;
+using NodeFlow.Server.Nodes.Common.Services;
 
-namespace NodeSharp.Nodes.Common.Helper;
+namespace NodeFlow.Server.Nodes.Common.Helper;
 
 public class RoslynHelper(string codeTemplate, string sourceCode)
 {

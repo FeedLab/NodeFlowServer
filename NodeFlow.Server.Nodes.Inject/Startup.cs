@@ -1,17 +1,22 @@
-﻿using NodeSharp.Nodes.Common;
-using NodeSharp.Nodes.Common.Model;
-using NodeSharp.Nodes.Common.Services;
+﻿using Microsoft.Extensions.DependencyInjection;
+using NodeFlow.Server.Nodes.Common;
+using NodeFlow.Server.Nodes.Common.Model;
+using NodeFlow.Server.Nodes.Common.Services;
 
-namespace NodeSharp.Nodes.Inject;
+namespace NodeFlow.Server.Nodes.Inject;
 
 public class Startup : INodeSharp
-{
+{   
+    private IServiceCollection services;
+
     public void Register(IServiceCollection services)
     {
+        this.services = services;
+        
         services.AddKeyedSingleton<INodeInformation, NodeInformation>(NodeName);
     }
 
-    public INodeInformation NodeInformation => AppService.GetRequiredKeyedService<INodeInformation>(NodeName);
+    public INodeInformation NodeInformation => new NodeInformation(); // services.GetRequiredKeyedService<INodeInformation>(NodeName);
 
     public string NodeName => "Inject";
     

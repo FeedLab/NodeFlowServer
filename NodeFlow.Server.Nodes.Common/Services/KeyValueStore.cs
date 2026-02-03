@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using NodeSharp.Nodes.Common.Configuration;
+using NodeFlow.Server.Nodes.Common.Configuration;
 
-namespace NodeSharp.Nodes.Common.Services;
+namespace NodeFlow.Server.Nodes.Common.Services;
 
 public class KeyValueStore : IDisposable
 {
@@ -12,7 +12,7 @@ public class KeyValueStore : IDisposable
     private readonly Timer? flushTimer;
     private readonly TimeSpan flushInterval1;
 
-    public KeyValueStore(IOptions<PersistToDiskSettings> persistSettings)
+    public KeyValueStore(IOptions<NodeSharpSettings.PersistToDiskSettings> persistSettings)
     {
         var settings = persistSettings?.Value;
         flushInterval1 = settings?.FlushInterval ?? TimeSpan.Zero;
@@ -149,6 +149,11 @@ public class KeyValueStore : IDisposable
             return fileName;
         }
 
-        return Path.Combine(FileSystem.AppDataDirectory, fileName);
+        var basePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        
+        // Use ContentRootPath (application base) or WebRootPath (wwwroot)
+        return Path.Combine(basePath, fileName);
     }
+    
+    
 }

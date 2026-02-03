@@ -1,17 +1,18 @@
 ﻿using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using NodeSharp.Nodes.Common;
-using NodeSharp.Nodes.Common.Collection;
-using NodeSharp.Nodes.Common.Exception;
-using NodeSharp.Nodes.Common.Extension;
-using NodeSharp.Nodes.Common.Helper;
-using NodeSharp.Nodes.Common.Model;
+using NodeFlow.Server.Nodes.Common;
+using NodeFlow.Server.Nodes.Common.Collection;
+using NodeFlow.Server.Nodes.Common.Exception;
+using NodeFlow.Server.Nodes.Common.Extension;
+using NodeFlow.Server.Nodes.Common.Helper;
+using NodeFlow.Server.Nodes.Common.Model;
 
-namespace NodeSharp.Nodes.Inject;
+namespace NodeFlow.Server.Nodes.Inject;
 
 public class NodeInject : BaseNode
 {
@@ -28,8 +29,7 @@ public class NodeInject : BaseNode
         bool activateOnStart,
         int xPosition,
         int yPosition,
-        Storage storage,
-        Color backgroundColor)
+        Storage storage)
         : base(
             nodes,
             id,
@@ -39,8 +39,7 @@ public class NodeInject : BaseNode
             activateOnStart,
             xPosition,
             yPosition,
-            storage,
-            backgroundColor
+            storage
         )
     {
         Repeat = new Repeat("Second", 10);
@@ -54,7 +53,7 @@ public class NodeInject : BaseNode
         Outputs.Clear();
 
         Outputs.Add(new Output(Guid.CreateVersion7(), "Output", [],
-            new Point(0, (BoxDimension.Height - statusBodyHeight) / 2)));
+            new Point(0, 0 / 2)));
 
         OutputMessage = "OK";
     }
@@ -66,11 +65,9 @@ public class NodeInject : BaseNode
         const double statusBodyHeight = 12;
         const double anchorWidth = 60;
 
-        BoxDimension = new Rect(0, 0, width - anchorWidth, height);
-        BoxBodyDimension = new Rect(0, 0, width - anchorWidth - anchorWidth, height - statusBodyHeight);
-
         return statusBodyHeight;
     }
+
 
     public NodeInject(
         BaseNodeList nodes,
@@ -83,7 +80,8 @@ public class NodeInject : BaseNode
         int yPosition,
         List<Output> outputs,
         List<Input> inputs,
-        JsonElement nodeElement)
+        JsonElement nodeElement,
+        Storage storage)
         : base(
             nodes,
             id,
@@ -94,7 +92,8 @@ public class NodeInject : BaseNode
             xPosition,
             yPosition,
             outputs,
-            inputs
+            inputs,
+            storage
         )
     {
         try
@@ -170,74 +169,76 @@ public class NodeInject : BaseNode
             }
 
 
-            _ = Task.Run(async () =>
-            {
-                if (ActivateAfter.Value > 0)
-                {
-                    Debug.WriteLine(
-                        $"Inject: Delay is enabled. Waiting {ActivateAfter.ActivateAfterMilliseconds} milliseconds before execute.");
-
-                    await PeriodicExecutor.DelayedPeriodicExecution(
-                        delay: TimeSpan.FromSeconds(ActivateAfter.Value),
-                        interval: TimeSpan.FromMilliseconds(250),
-                        action: (percentComplete) => { BoxNodeStatus.Value = (decimal)percentComplete; },
-                        cancellationToken: Cts.Token
-                    );
-                }
-
-                if (Repeat.IsEnabled)
-                {
-                    Debug.WriteLine("Inject: Starting repeating");
-
-                    await MainThread.InvokeOnMainThreadAsync(() => { BoxNodeStatus.Value = 0; });
-
-                    var repeatMs = Repeat.Type.ConvertTimeToMilliseconds(Repeat.Value);
-                    var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(repeatMs));
-
-                    try
-                    {
-                        do
-                        {
-                            await base.Run();
-                            var parametersJsonString = await BuildParametersJson(Parameters);
-
-                            await SendToConnectedChildrenAsync(parametersJsonString);
-
-                            await PeriodicExecutor.DelayedPeriodicExecution(
-                                delay: TimeSpan.FromSeconds(Repeat.Value),
-                                interval: TimeSpan.FromMilliseconds(1000),
-                                action: (percentComplete) => { BoxNodeStatus.Value = (decimal)percentComplete; },
-                                cancellationToken: Cts.Token);
-                        } while (await timer.WaitForNextTickAsync(Cts.Token));
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        Debug.WriteLine("Inject timer cancelled.");
-                    }
-                    finally
-                    {
-                        timer?.Dispose();
-                    }
-                }
-                else
-                {
-                    Debug.WriteLine("Inject: Starting once.");
-                    await base.Run();
-                    var parametersJsonString = await BuildParametersJson(Parameters);
-
-                    var jsonNode = JsonNode.Parse(parametersJsonString) ?? "";
-
-                    await MainThread.InvokeOnMainThreadAsync(() => { BoxNodeStatus.Value = 100; });
-
-                    await SendToConnectedChildrenAsync(jsonNode);
-                }
-            });
+            _ = Task.Run(async () => { await RunAsync(); });
 
             return Task.FromResult(OutputMessage);
         }
         finally
         {
             LeaveNode(this, stopwatch);
+        }
+    }
+
+    private async Task RunAsync()
+    {
+        if (ActivateAfter.Value > 0)
+        {
+            Debug.WriteLine(
+                $"Inject: Delay is enabled. Waiting {ActivateAfter.ActivateAfterMilliseconds} milliseconds before execute.");
+
+            // await PeriodicExecutor.DelayedPeriodicExecution(
+            //     delay: TimeSpan.FromSeconds(ActivateAfter.Value),
+            //     interval: TimeSpan.FromMilliseconds(250),
+            //     action: (percentComplete) => { BoxNodeStatus.Value = (decimal)percentComplete; },
+            //     cancellationToken: Cts.Token
+            // );
+        }
+
+        if (Repeat.IsEnabled)
+        {
+            Debug.WriteLine("Inject: Starting repeating");
+
+            // await MainThread.InvokeOnMainThreadAsync(() => { BoxNodeStatus.Value = 0; });
+
+            var repeatMs = Repeat.Type.ConvertTimeToMilliseconds(Repeat.Value);
+            var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(repeatMs));
+
+            try
+            {
+                do
+                {
+                    await base.Run();
+                    var parametersJsonString = await BuildParametersJson(Parameters);
+
+                    await SendToConnectedChildrenAsync(parametersJsonString);
+
+                    // await PeriodicExecutor.DelayedPeriodicExecution(
+                    //     delay: TimeSpan.FromSeconds(Repeat.Value),
+                    //     interval: TimeSpan.FromMilliseconds(1000),
+                    //     action: (percentComplete) => { BoxNodeStatus.Value = (decimal)percentComplete; },
+                    //     cancellationToken: Cts.Token);
+                } while (await timer.WaitForNextTickAsync(Cts.Token));
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.WriteLine("Inject timer cancelled.");
+            }
+            finally
+            {
+                timer?.Dispose();
+            }
+        }
+        else
+        {
+            Debug.WriteLine("Inject: Starting once.");
+            await base.Run();
+            var parametersJsonString = await BuildParametersJson(Parameters);
+
+            var jsonNode = JsonNode.Parse(parametersJsonString) ?? "";
+
+            // await MainThread.InvokeOnMainThreadAsync(() => { BoxNodeStatus.Value = 100; });
+
+            await SendToConnectedChildrenAsync(jsonNode);
         }
     }
 

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Nodes;
 
-namespace NodeSharp.Nodes.Common.Extension;
+namespace NodeFlow.Server.Nodes.Common.Extension;
 
 public static class JsonNodeExtensions
 {

@@ -1,4 +1,4 @@
-﻿namespace NodeSharp.Nodes.Common.Model;
+﻿namespace NodeFlow.Server.Nodes.Common.Model;
 
 public interface INodeInformation
 {
@@ -6,7 +6,6 @@ public interface INodeInformation
     string DisplayName { get; }
     string RuntimeType { get; }
     string Group { get; }
-    Color Background { get; }
     bool ActivateOnStart { get; }
     bool IsEnabled { get; }
     int NumberOfInputs { get; }

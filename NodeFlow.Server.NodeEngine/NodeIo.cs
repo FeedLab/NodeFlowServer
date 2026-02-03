@@ -1,13 +1,13 @@
 ﻿using System.Diagnostics;
+using System.Drawing;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using CommunityToolkit.Maui.Core.Extensions;
-using NodeSharp.Nodes.Common;
-using NodeSharp.Nodes.Common.Collection;
-using NodeSharp.Nodes.Common.Exception;
-using NodeSharp.Nodes.Common.Extension;
-using NodeSharp.Nodes.Common.Model;
-using NodeSharp.Nodes.Common.Services;
+using NodeFlow.Server.Nodes.Common;
+using NodeFlow.Server.Nodes.Common.Collection;
+using NodeFlow.Server.Nodes.Common.Exception;
+using NodeFlow.Server.Nodes.Common.Extension;
+using NodeFlow.Server.Nodes.Common.Model;
+using NodeFlow.Server.Nodes.Common.Services;
 
 namespace NodeSharp.NodeEngine;
 
@@ -201,7 +201,7 @@ public class NodeIo(Storage storage)
                 ? yi
                 : 0;
 
-            return new Point(x, y);
+            return new Point((int)x, (int)y);
         }
 
         // Fallback to reading X and Y directly from the element
@@ -215,7 +215,7 @@ public class NodeIo(Storage storage)
             ? yDirectValue
             : 0;
 
-        return new Point(xDirect, yDirect);
+        return new Point((int)xDirect, (int)yDirect);
     }
 
     static List<Output> ParseOutputs(JsonElement outputsElement)
@@ -232,13 +232,13 @@ public class NodeIo(Storage storage)
                 ? nameProp.GetString() ?? string.Empty
                 : string.Empty;
 
-            var connectsTo = Array.Empty<string>();
+            var connectsTo = new List<string>();
             if (o.TryGetPropertyIgnoreCase("connectsToNodeId", out var cProp) && cProp.ValueKind == JsonValueKind.Array)
             {
                 connectsTo = cProp.EnumerateArray()
                     .Where(e => e.ValueKind == JsonValueKind.String)
                     .Select(e => e.GetString()!)
-                    .ToArray();
+                    .ToList();
             }
 
 
@@ -249,7 +249,7 @@ public class NodeIo(Storage storage)
                 ? idi
                 : Guid.CreateVersion7();
 
-            result.Add(new Output(id, name, connectsTo.ToObservableCollection(), startPosition));
+            result.Add(new Output(id, name, connectsTo.ToList(), startPosition));
         }
 
         return result;
@@ -270,14 +270,14 @@ public class NodeIo(Storage storage)
                 ? nameProp.GetString() ?? string.Empty
                 : string.Empty;
 
-            var connectsTo = Array.Empty<string>();
+            var connectsTo = new List<string>();
             if (o.TryGetPropertyIgnoreCase("ConnectsToParentNodeId", out var cProp) &&
                 cProp.ValueKind == JsonValueKind.Array)
             {
                 connectsTo = cProp.EnumerateArray()
                     .Where(e => e.ValueKind == JsonValueKind.String)
                     .Select(e => e.GetString()!)
-                    .ToArray();
+                    .ToList();
             }
 
             var startPosition = GetStartPosition(o);
@@ -287,7 +287,7 @@ public class NodeIo(Storage storage)
                 ? idi
                 : Guid.CreateVersion7();
 
-            result.Add(new Input(id, name, connectsTo.ToObservableCollection(), startPosition));
+            result.Add(new Input(id, name, connectsTo.ToList(), startPosition));
         }
 
         return result;
@@ -323,10 +323,10 @@ public class NodeIo(Storage storage)
         var yPosition = (int)dropY;
         var isEnabled = nodeInfo.IsEnabled;
         var activateOnStart = nodeInfo.ActivateOnStart;
-        var backgroundColor = nodeInfo.Background;
+    //    var backgroundColor = nodeInfo.Background;
 
         var node = nodeFactory.CreateNode(nodes, id, typeId, name, isEnabled, activateOnStart,
-            xPosition, yPosition, storage, backgroundColor);
+            xPosition, yPosition, storage);
 
         nodes.Add(node);
     }
@@ -340,13 +340,13 @@ public class NodeIo(Storage storage)
         // var yPosition = (int)dropY;
         var isEnabled = nodeInfo.IsEnabled;
         var activateOnStart = nodeInfo.ActivateOnStart;
-        var backgroundColor = nodeInfo.Background;
+        // var backgroundColor = nodeInfo.Background;
 
         var node = nodeFactory.CreateNode(nodes, id, typeId, name, isEnabled, activateOnStart,
-            0, 0, storage, backgroundColor);
+            0, 0, storage);
 
-        node.X = (int)(position.X - (node.BoxDimension.Width / 2));
-        node.Y = (int)(position.Y - (node.BoxDimension.Height / 2));
+        // node.X = (int)(position.X - (node.BoxDimension.Width / 2));
+        // node.Y = (int)(position.Y - (node.BoxDimension.Height / 2));
 
         nodes.Add(node);
     }

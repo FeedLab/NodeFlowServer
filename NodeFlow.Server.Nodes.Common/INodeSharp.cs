@@ -1,6 +1,7 @@
-﻿using NodeSharp.Nodes.Common.Model;
+﻿using Microsoft.Extensions.DependencyInjection;
+using NodeFlow.Server.Nodes.Common.Model;
 
-namespace NodeSharp.Nodes.Common;
+namespace NodeFlow.Server.Nodes.Common;
 
 public interface INodeSharp
 {

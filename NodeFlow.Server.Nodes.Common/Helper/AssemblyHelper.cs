@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace NodeSharp.Nodes.Common.Helper;
+namespace NodeFlow.Server.Nodes.Common.Helper;
 
 public class AssemblyHelper
 {

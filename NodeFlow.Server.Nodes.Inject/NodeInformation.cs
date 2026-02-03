@@ -1,6 +1,6 @@
-﻿using NodeSharp.Nodes.Common.Model;
+﻿using NodeFlow.Server.Nodes.Common.Model;
 
-namespace NodeSharp.Nodes.Inject;
+namespace NodeFlow.Server.Nodes.Inject;
 
 
 
@@ -20,7 +20,6 @@ public class NodeInformation : INodeInformation
     public string DisplayName => "Inject";
     public string RuntimeType => DefaultRuntimeType;
     public string Group => "Core";
-    public Color Background => Color.FromUint(0xFFFFEBCD);
     public bool ActivateOnStart => true;
     public bool IsEnabled => true;
     public int NumberOfInputs => 0;

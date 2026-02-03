@@ -1,4 +1,4 @@
-﻿namespace NodeSharp.Nodes.Common.Model;
+﻿namespace NodeFlow.Server.Nodes.Common.Model;
 
 public class NodeInformationDictionary : Dictionary<string, INodeSharp>
 {

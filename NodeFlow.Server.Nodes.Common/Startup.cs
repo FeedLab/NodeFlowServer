@@ -1,8 +1,9 @@
-﻿using NodeSharp.Nodes.Common.Configuration;
-using NodeSharp.Nodes.Common.Services;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using NodeFlow.Server.Nodes.Common.Configuration;
+using NodeFlow.Server.Nodes.Common.Services;
 
-namespace NodeSharp.Nodes.Common;
-using Options = Microsoft.Extensions.Options.Options;
+namespace NodeFlow.Server.Nodes.Common;
 
 public static class Startup
 {

@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
-using NodeSharp.Nodes.Common.Helper;
+using NodeFlow.Server.Nodes.Common.Helper;
 
-namespace NodeSharp.Nodes.Common.Collection;
+namespace NodeFlow.Server.Nodes.Common.Collection;
 
 public class BaseNodeList : ObservableCollection<BaseNode>
 {
@@ -19,7 +19,7 @@ public class BaseNodeList : ObservableCollection<BaseNode>
     {
         foreach (var node in this)
         {
-            node.ValidateInputAndOutput();
+    //        node.ValidateInputAndOutput();
         }
     }
 
