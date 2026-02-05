@@ -31,6 +31,17 @@
     <ItemGroup>
       <ProjectReference Include="..\NodeFlow.Server.Data\NodeFlow.Server.Data.csproj" />
       <ProjectReference Include="..\NodeFlow.Server.Domain\NodeFlow.Server.Domain.csproj" />
+      <ProjectReference Include="..\NodeFlow.Server.Nodes.Common\NodeFlow.Server.Nodes.Common.csproj" />
     </ItemGroup>
+
+    <!-- Copy plugin DLLs to output directory for dynamic loading -->
+    <Target Name="CopyPlugins" AfterTargets="Build">
+        <ItemGroup>
+            <PluginFiles Include="..\NodeFlow.Server.Nodes.Inject\bin\$(Configuration)\$(TargetFramework)\NodeFlow.Server.Nodes.Inject.dll" />
+            <PluginFiles Include="..\NodeFlow.Server.Nodes.Inject\bin\$(Configuration)\$(TargetFramework)\NodeFlow.Server.Nodes.Inject.pdb" />
+        </ItemGroup>
+        <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(OutputPath)Plugins\" SkipUnchangedFiles="true" />
+        <Message Importance="High" Text="Copied plugin DLLs to $(OutputPath)Plugins\" />
+    </Target>
 
 </Project>

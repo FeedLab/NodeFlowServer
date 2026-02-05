@@ -4,13 +4,25 @@ namespace NodeFlow.Server.Nodes.Common.Helper;
 
 public class AssemblyHelper
 {
-    public static IEnumerable<Type> FindImplementations<TInterface>(string folder)
+    /// <summary>
+    /// Finds all implementations of the specified interface in all assemblies (*.dll)
+    /// found in the specified folder and its subdirectories.
+    /// </summary>
+    /// <typeparam name="TInterface">The interface type to search for</typeparam>
+    /// <param name="folder">Root folder to start searching from</param>
+    /// <param name="assemblyFilter">Optional filter for assembly names (e.g., "NodeFlow.Server.Nodes")</param>
+    /// <returns>All types that implement the interface</returns>
+    public static IEnumerable<Type> FindImplementations<TInterface>(string folder, string? assemblyFilter = null)
     {
         var dlls = Directory.GetFiles(folder, "*.dll", SearchOption.AllDirectories);
         var interfaceType = typeof(TInterface);
 
-        var names = dlls.Select(Path.GetFileName).Where(filename => filename.StartsWith("NodeSharp.Nodes")).ToList();
-        
+        // Apply filter if specified
+        if (!string.IsNullOrEmpty(assemblyFilter))
+        {
+            dlls = dlls.Where(dll => Path.GetFileName(dll).Contains(assemblyFilter, StringComparison.OrdinalIgnoreCase)).ToArray();
+        }
+
         foreach (var dll in dlls)
         {
             Assembly asm;
@@ -18,15 +30,30 @@ public class AssemblyHelper
             {
                 asm = Assembly.LoadFrom(dll);
             }
-            catch
+            catch (System.Exception ex)
             {
+                // Log or handle assembly load failures
+                Console.WriteLine($"[AssemblyHelper] Failed to load assembly {dll}: {ex.Message}");
                 continue;
             }
 
-            foreach (var type in asm.GetTypes())
+            Type[] types;
+            try
+            {
+                types = asm.GetTypes();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                // Handle partial assembly load
+                types = ex.Types.Where(t => t != null).ToArray()!;
+            }
+
+            foreach (var type in types)
             {
                 if (interfaceType.IsAssignableFrom(type) && type.IsClass && !type.IsAbstract)
+                {
                     yield return type;
+                }
             }
         }
     }
